@@ -1,2 +1,0 @@
-# BIS
-Bio inspired systems
