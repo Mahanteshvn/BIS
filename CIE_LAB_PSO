@@ -1,0 +1,68 @@
+import numpy as np
+
+# Generate synthetic data
+np.random.seed(42)
+X = np.linspace(0, 10, 50)
+true_a, true_b = 2.5, 1.0
+y = true_a * X + true_b + np.random.normal(0, 2, size=X.shape)
+
+# Define the loss function (Mean Squared Error)
+def mse(params):
+    a, b = params
+    y_pred = a * X + b
+    return np.mean((y - y_pred) ** 2)
+
+# Particle class for PSO
+class Particle:
+    def __init__(self, bounds):
+        self.position = np.random.uniform(bounds[:, 0], bounds[:, 1])
+        self.velocity = np.zeros_like(self.position)
+        self.best_position = self.position.copy()
+        self.best_score = mse(self.position)
+
+# PSO algorithm
+def pso(n_particles=30, n_iterations=100, bounds=np.array([[0, 5], [0, 5]]), w=0.5, c1=1.5, c2=1.5):
+    swarm = [Particle(bounds) for _ in range(n_particles)]
+    global_best_position = swarm[0].best_position.copy()
+    global_best_score = swarm[0].best_score
+
+    for particle in swarm:
+        if particle.best_score < global_best_score:
+            global_best_score = particle.best_score
+            global_best_position = particle.best_position.copy()
+
+    for iteration in range(n_iterations):
+        for particle in swarm:
+            r1, r2 = np.random.rand(2)
+            particle.velocity = (
+                w * particle.velocity +
+                c1 * r1 * (particle.best_position - particle.position) +
+                c2 * r2 * (global_best_position - particle.position)
+            )
+            particle.position += particle.velocity
+
+            score = mse(particle.position)
+            if score < particle.best_score:
+                particle.best_score = score
+                particle.best_position = particle.position.copy()
+
+                if score < global_best_score:
+                    global_best_score = score
+                    global_best_position = particle.position.copy()
+
+        if iteration % 10 == 0:
+            print(f"Iteration {iteration}: Best MSE = {global_best_score:.4f}")
+
+    return global_best_position, global_best_score
+
+# Run PSO
+best_params, best_loss = pso()
+a_opt, b_opt = best_params
+print(f"\nBest parameters found: a = {a_opt:.4f}, b = {b_opt:.4f}")
+print(f"Best loss (MSE): {best_loss:.4f}")
+
+# Show sample predictions
+print("\nSample predictions:")
+for xi, yi in zip(X[:5], y[:5]):
+    y_pred = a_opt * xi + b_opt
+    print(f"x = {xi:.2f}, y_true = {yi:.2f}, y_pred = {y_pred:.2f}")
